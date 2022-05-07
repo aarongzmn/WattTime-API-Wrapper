@@ -19,7 +19,7 @@ class RegisterNewUser:
         self.org = org
         self.register()
 
-    def register(self):
+    def register(self) -> dict:
         register_url = "https://api2.watttime.org/v2/register"
         params = {
             "username": self.username,
@@ -27,17 +27,17 @@ class RegisterNewUser:
             "email": self.email,
             "org": self.org
         }
-        r = requests.post(register_url, json=params)
-        if r.ok and "ok" in r.json().keys():
-            print("Account Created")
-        else:
-            if "error" in r.json().keys():
-                print(f"Unable to create account: {r.json()['error']}")
-            else:
-                print(f"Unable to create account, see server response for details:\n{r.json()}")
-        self.registration_response = r.json()
-        return
 
+        try:
+            r = requests.post(register_url, json=params)
+            if r.status_code == 400:
+                # 400 indicates bad request, check parameters
+                raise Exception(r.json()["error"])
+            else:
+                # Catch all other HTTP errors
+                r.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise
 
 class GridEmissionsInformation:
     """Use to interact with the WattTime API.
@@ -48,20 +48,28 @@ class GridEmissionsInformation:
         self._username = username
         self._password = password
         self._host = "https://api2.watttime.org/v2"
+        self.session = requests.Session()
         self._get_api_token()
 
-    def _get_api_token(self):
+    def _get_api_token(self) -> None:
         """Token expires after 30 minutes. If a data call returns HTTP 401 error code,
         you will need to call /login again to receive a new token.
         """
         endpoint = self._host + "/login"
-        r = requests.get(endpoint, auth=(self._username, self._password))
-        if r.ok:
+        try:
+            r = self.session.get(endpoint, auth=(self._username, self._password))
+            r.raise_for_status()
             self._api_token = r.json()["token"]
-            self._auth_header = {"Authorization": f"Bearer {r.json()['token']}"}
+            self.session.headers.update({"Authorization": f"Bearer {r.json()['token']}"})
             self._api_token_expire_dt = datetime.now() + timedelta(minutes=29)
-        else:
-            print("Login Failed")
+        except requests.exceptions.HTTPError as e:
+            raise
+
+    def _check_if_token_expired(self) -> None:
+        """Check if API token has expired. If so, get new token.
+        """
+        if self._api_token_expire_dt > datetime.now():
+            self._get_api_token()
 
     def determine_grid_region(self, latitude: float, longitude: float) -> dict:
         """Determine Grid Region
@@ -75,16 +83,15 @@ class GridEmissionsInformation:
             dict: Returns the details of the balancing authority (BA) serving that location, if known,
                 or a Coordinates not found error if the point lies outside of known/covered BAs.
         """
-        if self._api_token_expire_dt > datetime.now():
-            self._get_api_token()
+        self._check_if_token_expired()
         endpoint = self._host + "/ba-from-loc"
         params = {"latitude": latitude, "longitude": longitude}
-        r = requests.get(endpoint, headers=self._auth_header, params=params)
-        if r.ok:
+        try:
+            r = self.session.get(endpoint, params=params)
+            r.raise_for_status()
             return r.json()
-        else:
-            print(f"Request failed with status code {r.status_code}")
-            return r.text
+        except requests.exceptions.HTTPError as e:
+            raise Exception(r.json())
 
     def list_grid_regions(self, all_regions: bool = False) -> [dict]:
         """List of Grid Regions
@@ -100,16 +107,15 @@ class GridEmissionsInformation:
         Returns:
             [dict]: list of dictionaries containing region information.
         """
-        if self._api_token_expire_dt > datetime.now():
-            self._get_api_token()
+        self._check_if_token_expired()
         endpoint = self._host + "/ba-access"
         params = {"all": all_regions}
-        r = requests.get(endpoint, headers=self._auth_header, params=params)
-        if r.ok:
+        try:
+            r = self.session.get(endpoint, params=params)
+            r.raise_for_status()
             return r.json()
-        else:
-            print(f"Request failed with status code {r.status_code}")
-            return r.text
+        except requests.exceptions.HTTPError as e:
+            raise Exception(r.json())
 
     def real_time_emissions_index(
         self,
@@ -130,8 +136,7 @@ class GridEmissionsInformation:
         Returns:
             dict: Real-time data indicating the marginal carbon intensity for the local grid for the current time
         """
-        if self._api_token_expire_dt > datetime.now():
-            self._get_api_token()
+        self._check_if_token_expired()
         endpoint = self._host + "/index"
         params = {}
         if bal_auth_abbr:
@@ -142,12 +147,12 @@ class GridEmissionsInformation:
         if style:
             params["style"] = style
 
-        r = requests.get(endpoint, headers=self._auth_header, params=params)
-        if r.ok:
+        try:
+            r = self.session.get(endpoint, params=params)
+            r.raise_for_status()
             return r.json()
-        else:
-            print(f"Request failed with status code {r.status_code}")
-            return r.text
+        except requests.exceptions.HTTPError as e:
+            raise Exception(r.json())
 
     def grid_emissions_data(
         self,
@@ -173,8 +178,7 @@ class GridEmissionsInformation:
         Returns:
             dict: Historical MOERS (e.g. CO2 lbs/MWh) for a specified grid region balancing authority or location
         """
-        if self._api_token_expire_dt > datetime.now():
-            self._get_api_token()
+        self._check_if_token_expired()
         endpoint = self._host + "/data"
         params = {}
         if bal_auth_abbr:
@@ -190,12 +194,12 @@ class GridEmissionsInformation:
         if moerversion:
             params["moerversion"] = moerversion
 
-        r = requests.get(endpoint, headers=self._auth_header, params=params)
-        if r.ok:
+        try:
+            r = self.session.get(endpoint, params=params)
+            r.raise_for_status()
             return r.json()
-        else:
-            print(f"Request failed with status code {r.status_code}")
-            return r.text
+        except requests.exceptions.HTTPError as e:
+            raise Exception(r.json())
 
     def historical_emissions(
         self,
@@ -230,37 +234,38 @@ class GridEmissionsInformation:
         Returns:
             None
         """
-        if self._api_token_expire_dt > datetime.now():
-            self._get_api_token()
+        self._check_if_token_expired()
         endpoint = self._host + "/historical"
         params = {"ba": bal_auth_abbr}
         if moerversion:
             params["version"] = moerversion
 
-        r = requests.get(endpoint, headers=self._auth_header, params=params)
         try:
-            # Save response as ZIP file
-            working_dir = "output"  # possibly want to make this an optional argument
-            filename = filename.split('.')[0]  # split text to clean filename in event user includes extension
-            file_path = os.path.join(working_dir, filename)
-            try:
-                os.makedirs(working_dir)
-            except FileExistsError:
-                # directory already exists
-                pass
-            with open(f"{file_path}.zip", "wb") as binary_file:
-                binary_file.write(r.content)
-            if extract_files:
-                # Extract zip file contents into folder
-                with zipfile.ZipFile(file_path + ".zip", "r") as zip_ref:
-                    zip_ref.extractall(file_path)
-                if concatenate:
-                    # Combine extracted CSV files into single file
-                    all_files = glob.glob(f"{file_path}/*.csv")
-                    combined_data = pd.concat([pd.read_csv(f) for f in all_files])
-                    combined_data.to_csv(f"{file_path} (Combined Data).csv", index=False, encoding='utf-8-sig')
-        except:
-            print("Unable to save file.")
+            r = self.session.get(endpoint, params=params)
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(r.json())
+
+        # Save response as ZIP file
+        working_dir = "output"  # possibly want to make this an optional argument
+        filename = filename.split('.')[0]  # split text to clean filename in event user includes extension
+        file_path = os.path.join(working_dir, filename)
+        try:
+            os.makedirs(working_dir)
+        except FileExistsError:
+            # directory already exists
+            pass
+        with open(f"{file_path}.zip", "wb") as binary_file:
+            binary_file.write(r.content)
+        if extract_files:
+            # Extract zip file contents into folder
+            with zipfile.ZipFile(file_path + ".zip", "r") as zip_ref:
+                zip_ref.extractall(file_path)
+            if concatenate:
+                # Combine extracted CSV files into single file
+                all_files = glob.glob(f"{file_path}/*.csv")
+                combined_data = pd.concat([pd.read_csv(f) for f in all_files])
+                combined_data.to_csv(f"{file_path} (Combined Data).csv", index=False, encoding='utf-8-sig')
         return
 
     def emissions_forcast(
@@ -288,8 +293,7 @@ class GridEmissionsInformation:
         Returns:
             dict: Forecast of the MOERs (e.g. CO2 lbs/MWh) for a specified region.
         """
-        if self._api_token_expire_dt > datetime.now():
-            self._get_api_token()
+        self._check_if_token_expired()
         endpoint = self._host + "/forecast"
         params = {"ba": bal_auth_abbr}
         if starttime:
@@ -299,12 +303,12 @@ class GridEmissionsInformation:
         if extended_forecast:
             params["extended_forecast"] = extended_forecast
 
-        r = requests.get(endpoint, headers=self._auth_header, params=params)
-        if r.ok:
+        try:
+            r = self.session.get(endpoint, params=params)
+            r.raise_for_status()
             return r.json()
-        else:
-            print(f"Request failed with status code {r.status_code}")
-            return r.text
+        except requests.exceptions.HTTPError as e:
+            raise Exception(r.json())
 
     def get_region_map_geometry(self) -> dict:
         """Grid Region Map Geometry
@@ -317,12 +321,11 @@ class GridEmissionsInformation:
             dict: A geojson response, that is a Feature Collection with properties that describe each BA,
                 and multipolygon geometry made up of coordinates which define the boundary for each BA.
         """
-        if self._api_token_expire_dt > datetime.now():
-            self._get_api_token()
+        self._check_if_token_expired()
         endpoint = self._host + "/maps"
-        r = requests.get(endpoint, headers=self._auth_header)
-        if r.ok:
+        try:
+            r = self.session.get(endpoint)
+            r.raise_for_status()
             return r.json()
-        else:
-            print(f"Request failed with status code {r.status_code}")
-            return r.text
+        except requests.exceptions.HTTPError as e:
+            raise Exception(r.json())
