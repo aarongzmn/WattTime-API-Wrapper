@@ -323,7 +323,6 @@ class GridEmissionsInformation:
         """Emissions Forecast
         https://www.watttime.org/api-documentation/#emissions-forecast
         Restricted to customers with PRO subscriptions. Data can be previewed by setting balancing_auth = 'CAISO_NORTH'
-        
 
         Obtain a forecast of the MOERs (e.g. CO2 lbs/MWh) for a specified region.
         Omitting the starttime and endtime parameters will return the most recently generated forecast.
@@ -359,7 +358,6 @@ class GridEmissionsInformation:
         """Grid Region Map Geometry
         https://www.watttime.org/api-documentation/#grid-region-map-geometry
         Restricted to customers with ANALYST or PRO subscriptions
-        
 
         Provides a geojson of the grid region boundary for all regions that WattTime covers globally.
 
