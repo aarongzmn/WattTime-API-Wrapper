@@ -5,7 +5,7 @@ Python API wrapper for the WattTime API: https://www.watttime.org/api-documentat
 - Automatically update API key once it has expired (every 30 mins).
 - Built in rate limiting to comply with WattTime API ussage guidelines (3000 requests/5 mins)
 - Increased performance by reusing [session object](https://docs.python-requests.org/en/master/user/advanced/#session-objects) accross requests.
-- Additional ease of use features/tools to extend
+- Additional QoL features to facilitate working with response data.
 
 # Register Account
 ```
