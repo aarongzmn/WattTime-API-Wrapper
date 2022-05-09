@@ -59,7 +59,7 @@ class GridEmissionsInformation:
         """
         self._calls = 10  # Maximum number of API calls within time 'period'.
         self._period = 1  # Seconds before the rate limit resets.
-        self._cushion = 1  #  Seconds to wait once rate limit is reached.
+        self._cushion = 1  # Seconds to wait once rate limit is reached.
         self._timestamp_list = [time.time() - self._period] * self._calls
 
     def _get_api_token(self) -> None:
