@@ -57,10 +57,10 @@ class GridEmissionsInformation:
         Default API rate limit settings.
         https://www.watttime.org/api-documentation/#introduction
         """
-        self._calls = 10  # Maximum number of API calls within time 'period'.
-        self._period = 1  # Seconds before the rate limit resets.
+        self._calls = 3000  # Maximum number of API calls within time 'period'.
+        self._period = 300  # Seconds before the rate limit resets.
         self._cushion = 1  # Seconds to wait once rate limit is reached.
-        self._timestamp_list = [time.time() - self._period] * self._calls
+        self._timestamp_list = [time.time() - (self._period + 1)] * self._calls
 
     def _get_api_token(self) -> None:
         """Token expires after 30 minutes. If a data call returns HTTP 401 error code,
@@ -82,10 +82,10 @@ class GridEmissionsInformation:
         This is to be called from the "_api_helper" method, is run before all API requests.
         """
         ts_now = time.time()
-        request_count = len([ts for ts in self._timestamp_list if ts > (ts_now - self._period)])
-        if request_count >= self._calls:
-            rate_limit_cooldown = int(ts_now - self._timestamp_list[0]) + self._cushion
-            # warnings.warn(f"API rate limit reached, waiting for reset in {rate_limit_cooldown} seconds")
+        ts_limit = ts_now - self._period
+        if self._timestamp_list[0] > ts_limit:
+            rate_limit_cooldown = int(self._timestamp_list[0] - ts_limit) + self._cushion
+            warnings.warn(f"API rate limit reached, waiting for reset in {rate_limit_cooldown} seconds")
             time.sleep(rate_limit_cooldown)
         self._timestamp_list = self._timestamp_list[1:] + [ts_now]
         return
