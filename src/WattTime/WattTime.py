@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import glob
 import os
 import time
-from typing import Literal
 import warnings
 import zipfile
 
@@ -155,7 +154,7 @@ class GridEmissionsInformation:
         balancing_auth: str = None,
         latitude: float = None,
         longitude: float = None,
-        style: Literal["percent", "moer", "all"] = None,
+        style: str = None,
         ) -> dict:
         """Real-time Emissions Index
         https://www.watttime.org/api-documentation/#real-time-emissions-index
@@ -199,7 +198,7 @@ class GridEmissionsInformation:
         balancing_auth: str = None,
         latitude: float = None,
         longitude: float = None,
-        style: Literal["percent", "moer", "all"] = "all",
+        style: str = "all",
         starttime: str = None,
         endtime: str = None,
         moerversion: str = None
@@ -259,7 +258,7 @@ class GridEmissionsInformation:
         filename: str = "historical",
         extract_files: bool = False,
         concatenate: bool = False,
-        moerversion: Literal["latest", "all"] = "all",
+        moerversion: str = "all",
         ) -> str:
         """Historical Emissions
         https://www.watttime.org/api-documentation/#historical-emissions
