@@ -23,22 +23,19 @@ class RegisterNewUser:
 
     def register(self) -> dict:
         register_url = "https://api2.watttime.org/v2/register"
+        params = {}
         params = {
             "username": self.username,
             "password": self.password,
             "email": self.email,
             "org": self.org
         }
-
         try:
             r = requests.post(register_url, json=params)
-            if r.status_code == 400:
-                # 400 indicates bad request, check parameters
-                raise Exception(r.json()["error"])
-            else:
-                # Catch all other HTTP errors
-                r.raise_for_status()
+            r.raise_for_status()
         except requests.exceptions.HTTPError as e:
+            if e.response.json() and "error" in e.response.json().keys():
+                print(r.json())
             raise
 
 class GridEmissionsInformation:
@@ -75,6 +72,7 @@ class GridEmissionsInformation:
             self._session.headers.update({"Authorization": f"Bearer {r.json()['token']}"})
             self._api_token_expire_dt = datetime.now() + timedelta(minutes=29)
         except requests.exceptions.HTTPError as e:
+            print(e.response.text)
             raise
 
     def _rate_limiter(self) -> None:
@@ -122,7 +120,9 @@ class GridEmissionsInformation:
             r.raise_for_status()
             return r.json()
         except requests.exceptions.HTTPError as e:
-            raise Exception(r.json())
+            if e.response.json() and "error" in r.json().keys():
+                return r.json()
+            raise
 
     def list_grid_regions(self, all_regions: bool = False) -> [dict]:
         """List of Grid Regions
@@ -146,7 +146,9 @@ class GridEmissionsInformation:
             r.raise_for_status()
             return r.json()
         except requests.exceptions.HTTPError as e:
-            raise Exception(r.json())
+            if e.response.json() and "error" in r.json().keys():
+                return r.json()
+            raise
 
     def real_time_emissions_index(
         self,
@@ -188,7 +190,9 @@ class GridEmissionsInformation:
             r.raise_for_status()
             return r.json()
         except requests.exceptions.HTTPError as e:
-            raise Exception(r.json())
+            if e.response.json() and "error" in r.json().keys():
+                return r.json()
+            raise
 
     def grid_emissions_data(
         self,
@@ -245,7 +249,9 @@ class GridEmissionsInformation:
             r.raise_for_status()
             return r.json()
         except requests.exceptions.HTTPError as e:
-            raise Exception(r.json())
+            if e.response.json() and "error" in r.json().keys():
+                return r.json()
+            raise
 
     def historical_emissions(
         self,
@@ -286,7 +292,9 @@ class GridEmissionsInformation:
             r = self._session.get(endpoint, params=params)
             r.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise Exception(r.json())
+            if e.response.json() and "error" in r.json().keys():
+                return r.json()
+            raise
 
         # Save response as ZIP file
         working_folder = "output"  # possibly want to make this an optional argument
@@ -352,7 +360,9 @@ class GridEmissionsInformation:
             r.raise_for_status()
             return r.json()
         except requests.exceptions.HTTPError as e:
-            raise Exception(r.json())
+            if e.response.json() and "error" in r.json().keys():
+                return r.json()
+            raise
 
     def get_region_map_geometry(self) -> dict:
         """Grid Region Map Geometry
@@ -372,4 +382,6 @@ class GridEmissionsInformation:
             r.raise_for_status()
             return r.json()
         except requests.exceptions.HTTPError as e:
-            raise Exception(r.json())
+            if e.response.json() and "error" in r.json().keys():
+                return r.json()
+            raise
