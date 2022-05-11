@@ -2,25 +2,41 @@
 Python API wrapper for the WattTime API: https://www.watttime.org/api-documentation
 ## Key Features
 - Full support for all endpoints and parameters.
-- Automatically update API key once it has expired (every 30 mins).
+- API key will be automatically updated once it has expired (every 30 mins).
 - Built in rate limiting to comply with WattTime API ussage guidelines (3000 requests/5 mins)
 - Increased performance by reusing [session object](https://docs.python-requests.org/en/master/user/advanced/#session-objects) accross requests.
 - Additional QoL features to facilitate working with response data.
 
-# Register Account
+# Installation Instructions
+## Install Requirements (If Necessary)
+- Both "pandas" and "requests" libraries are required to use this library.
+```
+pip install pandas
+```
+```
+pip install requests
+```
+
+## Install Library
+```
+pip install watttime-api-wrapper
+```
+
+# Usage Instructions
+## Register Account
+- This step is only required if you do not already have a WattTime account.
 ```
 from WattTime import WattTime
 
 
-username = "{USERNAME}"
-password = "{PASSWORD}"
-email = "{EMAIL_ADDRESS}"
-org = "{ORG_NAME}"
+username = "{username}"  # required
+password = "{password}"  # required
+email = "{user@email.com}"  # required
+org = "{organization}"  # optional
 wt = WattTime.RegisterNewUser(username, password, email)
 ```
-# Create a Client
-
-- After you have registered for an account, save your username and password as environment variables.
+## Create a Client
+- Once you have registered an account, saving your username and password as environment variables is recommended.
 ```
 from WattTime import WattTime
 import os
